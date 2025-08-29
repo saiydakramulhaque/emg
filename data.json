@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "name": "National Emergency Number",
+    "description": "National Emergency",
+    "number": "999",
+    "category": "All",
+    "icon_class": "fa-solid fa-house-chimney-medical",
+    "icon_bg_color": "bg-red-100",
+    "icon_color": "text-red-500"
+  },
+  {
+    "id": 2,
+    "name": "Police",
+    "description": "Police Help",
+    "number": "999",
+    "category": "Police",
+    "icon_class": "fa-solid fa-building-shield",
+    "icon_bg_color": "bg-blue-100",
+    "icon_color": "text-blue-500"
+  },
+  {
+    "id": 3,
+    "name": "Fire Service Number",
+    "description": "Fire Service",
+    "number": "999",
+    "category": "Fire",
+    "icon_class": "fa-solid fa-fire",
+    "icon_bg_color": "bg-orange-100",
+    "icon_color": "text-orange-500"
+  },
+  {
+    "id": 4,
+    "name": "Health Service (Shastho Batayon)",
+    "description": "Health Help",
+    "number": "16263",
+    "category": "Health",
+    "icon_class": "fa-solid fa-truck-medical",
+    "icon_bg_color": "bg-green-100",
+    "icon_color": "text-green-500"
+  }
+]

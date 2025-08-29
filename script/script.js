@@ -1,116 +1,195 @@
-'use strict';
+// =================================================================
+// DOM Element Selection
+// =================================================================
+const cardsContainer = document.getElementById('cards-container');
+const loveCountSpan = document.getElementById('love-count');
+const coinCountSpan = document.getElementById('coin-count');
+const copyCountSpan = document.getElementById('copy-count');
+const historyList = document.getElementById('history-list');
+// Robustly select the clear button, assuming it's the only one in that section
+const clearHistoryButton = document.querySelector('.h-fit .flex button');
 
-document.addEventListener('DOMContentLoaded', () => {
-    const cardsContainer = document.getElementById('cards-container');
-    const loveCountEl = document.getElementById('love-count');
-    const coinCountEl = document.getElementById('coin-count');
-    const copyCountEl = document.getElementById('copy-count');
-    const historyListEl = document.getElementById('history-list');
-    const clearHistoryBtn = document.getElementById('clear-history-btn');
+// =================================================================
+// State Management
+// =================================================================
+// Use a Set to track liked items to prevent duplicate counts
+const likedItems = new Set();
 
-    let loveCount = 0;
-    let coinCount = 100;
-    let copyCount = 0;
+// =================================================================
+// Data Fetching and Display
+// =================================================================
 
-    const services = [
-        { name: 'National Emergency Number', name_en: 'National Emergency', number: '999', category: 'All', icon: 'fa-solid fa-house-chimney-medical' },
-        { name: 'Police Helpline Number', name_en: 'Police', number: '999', category: 'Police', icon: 'fa-solid fa-building-shield' },
-        { name: 'Fire Service Number', name_en: 'Fire Service', number: '999', category: 'Fire', icon: 'fa-solid fa-fire' },
-        { name: 'Ambulance Service', name_en: 'Ambulance', number: '1994-999999', category: 'Health', icon: 'fa-solid fa-truck-medical' },
-        { name: 'Women & Child Helpline', name_en: 'Women & Child Help', number: '109', category: 'Help', icon: 'fa-solid fa-person-dress' },
-        { name: 'Anti-Corruption Helpline', name_en: 'Anti-Corruption', number: '106', category: 'Govt.', icon: 'fa-solid fa-handcuffs' },
-        { name: 'Electricity Helpline', name_en: 'Electricity Outage', number: '16216', category: 'Electricity', icon: 'fa-solid fa-bolt' },
-        { name: 'Brac Helpline', name_en: 'Brac', number: '16445', category: 'NGO', icon: 'fa-solid fa-hands-holding-child' },
-        { name: 'Bangladesh Railway Helpline', name_en: 'Bangladesh Railway', number: '163', category: 'Travel', icon: 'fa-solid fa-train' },
-    ];
+/**
+ * Fetches service data from an external JSON file.
+ * Assumes a 'data.json' file exists in the same directory.
+ */
+const loadServicesData = async () => {
+    try {
+        // Fetch the data from the local JSON file
+        const response = await fetch('data.json');
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const data = await response.json();
+        // Once data is fetched, display it
+        displayServices(data);
+    } catch (error) {
+        console.error("Could not fetch or process service data:", error);
+        cardsContainer.innerHTML = `<p class="text-red-500">Failed to load services. Please try again later.</p>`;
+    }
+};
 
-    const displayCards = () => {
-        cardsContainer.innerHTML = '';
-        services.forEach(service => {
-            const cardHTML = `
-                <div class="bg-white text-gray-800 p-6 rounded-2xl border border-gray-200 flex flex-col shadow-sm transition-shadow hover:shadow-lg">
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="bg-gray-100 p-3 rounded-lg">
-                            <i class="${service.icon} text-2xl text-[#10B981]"></i>
-                        </div>
-                        <button class="love-btn"><i class="fa-regular fa-heart text-gray-400 text-xl"></i></button>
+/**
+ * Renders the service cards dynamically into the DOM.
+ * @param {Array<Object>} services - An array of service objects.
+ */
+const displayServices = (services) => {
+    // Clear any static or previously loaded cards
+    cardsContainer.innerHTML = '';
+
+    services.forEach(service => {
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'bg-white text-gray-800 p-6 rounded-2xl border border-gray-200 flex flex-col';
+
+        cardDiv.innerHTML = `
+            <div class="flex justify-between items-start mb-4">
+                <div class="flex items-center gap-4">
+                    <div class="${service.icon_bg_color} p-3 rounded-lg">
+                        <i class="${service.icon_class} text-2xl ${service.icon_color}"></i>
                     </div>
-
-                    <div class="flex-grow">
-                        <h3 class="font-bold text-lg">${service.name}</h3>
-                        <p class="text-sm text-gray-500">${service.name_en}</p>
-                        <h2 class="text-3xl font-bold my-4">${service.number}</h2>
-                    </div>
-
-                    <div class="border-t pt-4 mt-auto flex justify-between items-center">
-                        <div class="badge badge-outline text-gray-600">${service.category}</div>
-                        <div class="flex gap-2">
-                            <button class="copy-btn btn btn-sm bg-gray-200 border-none font-normal" data-number="${service.number}">
-                                <i class="fa-regular fa-copy"></i> Copy
-                            </button>
-                            <button class="call-btn btn btn-sm bg-[#10B981] text-white border-none font-normal" data-number="${service.number}" data-name="${service.name}">
-                                <i class="fa-solid fa-phone"></i> Call
-                            </button>
-                        </div>
-                    </div>
-                </div>`;
-            cardsContainer.insertAdjacentHTML('beforeend', cardHTML);
-        });
-    };
-
-    const addToHistory = (serviceName, serviceNumber) => {
-        const callTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        const historyItemHTML = `
-            <div class="flex justify-between items-center">
-                <div>
-                    <p class="font-semibold">${serviceName}</p>
-                    <p class="text-sm text-gray-500">${serviceNumber}</p>
                 </div>
-                <p class="font-semibold text-gray-600">${callTime}</p>
-            </div>`;
-        historyListEl.insertAdjacentHTML('beforeend', historyItemHTML);
-    };
+                <button data-id="${service.id}" class="like-btn">
+                    <i class="fa-regular fa-heart text-gray-400 text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="flex-grow">
+                <h3 class="font-bold text-lg">${service.name}</h3>
+                <p class="text-sm text-gray-500">${service.description}</p>
+                <h2 class="text-3xl font-bold my-2 number-to-copy">${service.number}</h2>
+                <p class="bg-[#f2f2f2] w-fit px-4 py-2 flex justify-center items-center rounded-2xl text-sm">${service.category}</p>
+            </div>
 
-    cardsContainer.addEventListener('click', (e) => {
-        const button = e.target.closest('button');
-        if (!button) return;
-
-        if (button.classList.contains('love-btn')) {
-            loveCount++;
-            loveCountEl.textContent = loveCount;
-            const icon = button.querySelector('i');
-            icon.classList.toggle('fa-regular');
-            icon.classList.toggle('fa-solid');
-            icon.classList.toggle('text-red-500');
-        }
-
-        if (button.classList.contains('copy-btn')) {
-            const numberToCopy = button.dataset.number;
-            navigator.clipboard.writeText(numberToCopy).then(() => {
-                alert(`Copied "${numberToCopy}" to clipboard!`);
-                copyCount++;
-                copyCountEl.textContent = copyCount;
-            }).catch(err => console.error('Failed to copy: ', err));
-        }
-
-        if (button.classList.contains('call-btn')) {
-            if (coinCount < 20) {
-                alert("Sorry, you don't have enough coins to make a call!");
-                return;
-            }
-            coinCount -= 20;
-            coinCountEl.textContent = coinCount;
-            const serviceName = button.dataset.name;
-            const serviceNumber = button.dataset.number;
-            alert(`Calling ${serviceName} at ${serviceNumber}...`);
-            addToHistory(serviceName, serviceNumber);
-        }
+            <div class="flex justify-between items-center border-t pt-4 mt-4">
+                <div class="flex gap-2">
+                    <button class="btn btn-sm bg-gray-200 border-none copy-btn">
+                        <i class="fa-solid fa-copy"></i> Copy
+                    </button>
+                    <button class="btn btn-sm bg-green-600 text-white border-none call-btn">
+                        <i class="fa-solid fa-phone"></i> Call
+                    </button>
+                </div>
+            </div>
+        `;
+        cardsContainer.appendChild(cardDiv);
     });
+};
 
-    clearHistoryBtn.addEventListener('click', () => {
-        historyListEl.innerHTML = '';
-        alert('Call history has been cleared.');
-    });
+// =================================================================
+// Event Handler Functions
+// =================================================================
 
-    displayCards();
+/**
+ * Handles the 'like' button click to update the heart icon and count.
+ * @param {HTMLElement} button - The like button that was clicked.
+ */
+const handleLikeClick = (button) => {
+    const heartIcon = button.querySelector('i');
+    const cardId = button.dataset.id;
+    let currentLoveCount = parseInt(loveCountSpan.innerText);
+
+    // Toggle icon style
+    heartIcon.classList.toggle('fa-regular');
+    heartIcon.classList.toggle('fa-solid');
+    heartIcon.classList.toggle('text-gray-400');
+    heartIcon.classList.toggle('text-red-500');
+
+    // Update count based on whether the item is already liked
+    if (likedItems.has(cardId)) {
+        likedItems.delete(cardId); // Unlike
+        loveCountSpan.innerText = currentLoveCount - 1;
+    } else {
+        likedItems.add(cardId); // Like
+        loveCountSpan.innerText = currentLoveCount + 1;
+    }
+};
+
+/**
+ * Handles the 'copy' button click to copy the number and update counts.
+ * @param {HTMLElement} button - The copy button that was clicked.
+ */
+const handleCopyClick = (button) => {
+    let currentCopyCount = parseInt(copyCountSpan.innerText);
+    let currentCoinCount = parseInt(coinCountSpan.innerText);
+
+    if (currentCopyCount > 0) {
+        // Update counts as per the requirement
+        copyCountSpan.innerText = currentCopyCount - 1;
+        coinCountSpan.innerText = currentCoinCount + 10;
+
+        // Find the number in the card and copy to clipboard
+        const card = button.closest('.flex.flex-col');
+        const numberToCopy = card.querySelector('.number-to-copy').innerText;
+        
+        navigator.clipboard.writeText(numberToCopy)
+            .then(() => alert(`'${numberToCopy}' has been copied to your clipboard!`))
+            .catch(err => console.error('Failed to copy text: ', err));
+    } else {
+        alert("You have no copies left! Earn more to copy again.");
+    }
+};
+
+/**
+ * Handles the 'call' button click to add an entry to the call history.
+ * @param {HTMLElement} button - The call button that was clicked.
+ */
+const handleCallClick = (button) => {
+    const card = button.closest('.flex.flex-col');
+    const serviceName = card.querySelector('h3').innerText;
+    const serviceNumber = card.querySelector('.number-to-copy').innerText;
+    const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    const historyItemDiv = document.createElement('div');
+    historyItemDiv.className = 'flex justify-between items-center';
+    historyItemDiv.innerHTML = `
+        <div>
+            <p class="font-semibold">${serviceName}</p>
+            <p class="text-sm text-gray-500">${serviceNumber}</p>
+        </div>
+        <p class="font-semibold text-gray-600">${currentTime}</p>
+    `;
+    // Add the new call to the top of the history list
+    historyList.prepend(historyItemDiv);
+};
+
+// =================================================================
+// Event Listeners
+// =================================================================
+
+// Use event delegation on the cards container for dynamically added buttons
+cardsContainer.addEventListener('click', (event) => {
+    const target = event.target;
+    
+    // Check if a like, copy, or call button (or their icons) was clicked
+    const likeButton = target.closest('.like-btn');
+    const copyButton = target.closest('.copy-btn');
+    const callButton = target.closest('.call-btn');
+
+    if (likeButton) {
+        handleLikeClick(likeButton);
+    } else if (copyButton) {
+        handleCopyClick(copyButton);
+    } else if (callButton) {
+        handleCallClick(callButton);
+    }
 });
+
+// Add event listener for the 'Clear History' button
+clearHistoryButton.addEventListener('click', () => {
+    historyList.innerHTML = '';
+});
+
+// =================================================================
+// Initial Application Load
+// =================================================================
+document.addEventListener('DOMContentLoaded', loadServicesData);
